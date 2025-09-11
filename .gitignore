@@ -1,0 +1,129 @@
+# Project specific files
+client_secrets.json
+credentials.json
+process_monitor.txt
+convert_js_to_python.py
+lst.ipynb
+series/
+
+# Data and output files
+*.xlsx
+*.csv
+*.html
+*.log
+
+# System and temporary files
+.fuse*
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution and packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+
+# Testing and coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Documentation
+docs/_build/
+*.mo
+*.pot
+
+# Logs and databases
+pip-log.txt
+pip-delete-this-directory.txt
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Framework specific
+instance/          # Flask
+.webassets-cache   # Flask
+.scrapy            # Scrapy
+
+# Development tools
+.pybuilder/
+target/
+.ipynb_checkpoints  # Jupyter
+profile_default/    # IPython
+ipython_config.py   # IPython
+
+# Environment management
+settings.yaml
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version    # pyenv
+__pypackages__/    # PEP 582
+
+# Package management
+#Pipfile.lock      # pipenv
+#poetry.lock       # poetry
+#uv.lock          # UV
+#pdm.lock         # pdm
+.pdm.toml
+.pdm-python
+.pdm-build/
+.pypirc           # PyPI config
+
+# Type checking and static analysis
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# IDE settings
+.spyderproject     # Spyder
+.spyproject        # Spyder
+.ropeproject       # Rope
+#.idea/           # PyCharm/IntelliJ
+
+# Task runners and processing
+celerybeat-schedule
+celerybeat.pid
+*.sage.py          # SageMath
+cython_debug/      # Cython
+
+# Documentation
+/site              # mkdocs
