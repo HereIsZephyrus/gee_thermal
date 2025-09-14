@@ -22,6 +22,7 @@ cp .env.example .env
 ```bash # .env
 IMAGE_COLLECTION_PATH=your local path to save images (required)
 QUALITY_FILE_PATH=your local path to save record file (required)
+MONITOR_FOLDER_PATH=your local path to save monitor info (required)
 DRIVE_FOLDER_ID=google drive folder id (required)
 PROJECT_NAME=your own gee project (required)
 ```
@@ -47,6 +48,5 @@ python tests/test.py
 If the script runs successfully, you can run the main script:
 
 ```bash
-chmod +x start.sh
-./start.sh
+python -m src
 ```
