@@ -14,10 +14,18 @@ class Image:
         self.save_path = save_path
         self.image_name = image_name
         self.geometry = geometry
-        self.bands = []
+        self.bands = None
 
-    def add_band(self, bands: ee.Image):
-        self.bands.append(bands)
+    def add_band(self, sub_image: ee.Image):
+        if sub_image is None:
+            logger.error("sub_image is None")
+            return
+        if self.bands is None:
+            self.bands = sub_image
+            logger.info("create image with band: %s", self.image_name)
+        else:
+            self.bands = self.bands.addBands(sub_image)
+            logger.info("add band to image: %s", self.image_name)
 
     def create_export_task(self):
         """
