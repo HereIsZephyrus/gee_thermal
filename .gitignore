@@ -5,7 +5,7 @@ process_monitor.txt
 convert_js_to_python.py
 lst.ipynb
 series/
-
+.vscode/
 # Data and output files
 *.xlsx
 *.csv

@@ -1,7 +1,6 @@
 import csv
 import traceback
 import logging
-from typing import List
 import ee
 from .calculator import Calculator
 from ..communicator import CityAsset
@@ -10,8 +9,8 @@ from ..lst_algorithm import fetch_best_landsat_image
 logger = logging.getLogger(__name__)
 
 class LstCalculator(Calculator):
-    def __init__(self, city_asset: CityAsset, year: int, month: int):
-        super().__init__(city_asset, year, month)
+    def __init__(self, city_asset: CityAsset, year: int, month: int, quality_file_path: str):
+        super().__init__(city_asset, year, month, quality_file_path)
 
     def calculate(self):
         """ 

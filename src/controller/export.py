@@ -2,16 +2,19 @@
 Export image
 """
 import logging
+from typing import TYPE_CHECKING
 from pypinyin import lazy_pinyin as pinyin
 from .image import Image
 from ..communicator.drive_manager import DriveManager
 from ..communicator.ee_manager import CityAsset
 from ..calculator import LstCalculator
-from ..monitor import Monitor
+
+if TYPE_CHECKING:
+    from ..monitor import Monitor
 
 logger = logging.getLogger(__name__)
 
-def export_image(drive_manager: DriveManager, city_asset: CityAsset, save_path: str, monitor: Monitor, year: int, month: int):
+def export_image(drive_manager: DriveManager, city_asset: CityAsset, save_path: str, monitor: "Monitor", year: int, month: int):
     """
     export the lst image to the drive
     """

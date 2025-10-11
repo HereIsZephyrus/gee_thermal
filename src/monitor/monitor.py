@@ -4,7 +4,6 @@ import threading
 from datetime import datetime, timedelta
 from .tracker import TaskTracker, recover_task_tracker
 from ..communicator.drive_manager import DriveManager
-from ..controller import Image
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class Monitor:
         self.drive_manager = drive_manager
         self.refresh_interval = refresh_interval
 
-    def export(self, image: Image):
+    def export(self, image):
         """
         Export the image to the drive
         """
