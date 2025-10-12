@@ -43,5 +43,5 @@ class LstCalculator(Calculator):
             except Exception as e:
                 logging.error("fetch error: %s\n traceback: %s", e, traceback.format_exc())
                 continue
-        
+
         self.image = landsat_coll

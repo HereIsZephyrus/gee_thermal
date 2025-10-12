@@ -11,7 +11,7 @@ from ..monitor import Monitor
 
 logger = logging.getLogger(__name__)
 
-def export_image(drive_manager: DriveManager, city_asset: CityAsset, cloud_path: str, monitor: Monitor, year: int, month: int, quality_file_path: str):
+def export_image(drive_manager: DriveManager, city_asset: CityAsset, cloud_path: str, monitor: Monitor, year: int, month: int, quality_file_path: str, missing_file_path: str):
     """
     export the lst image to the drive
     """
@@ -26,7 +26,9 @@ def export_image(drive_manager: DriveManager, city_asset: CityAsset, cloud_path:
     )
     lst_calculator.calculate()
     if lst_calculator.image is None:
-        logger.warning("No Landsat data found")
+        logger.warning("No Landsat data found for %s", image_name)
+        with open(missing_file_path, 'a', encoding='utf-8') as f:
+            f.write(f"{year}-{month:02}\n")
         return False
     image.add_band(lst_calculator.image)
     try:

@@ -65,8 +65,11 @@ class DownloadState(TaskState):
         file_obj = tracker.get_fileobj(cloud_file_name)
         logger.info("get fileobj: %s", file_obj)
         local_file_name = os.path.join(tracker.collection_path, cloud_file_name)
+        local_file_name = f"{local_file_name}.tif"
         logger.info("downloading to %s", local_file_name)
         file_obj.GetContentFile(local_file_name)
+        logger.info("download completed: %s", cloud_file_name)
+        return CompeletedState()
 
 class CompeletedState(TaskState):
     """
@@ -122,6 +125,8 @@ class TaskTracker:
         """
         Dump the tracker to file
         """
+        if self.state is None:
+            return
         # Create a copy without the file_writer (which contains threading.Lock)
         tracker_data = {
             'image': self.image,
@@ -132,16 +137,26 @@ class TaskTracker:
             'collection_path': self.collection_path,
             'monitor_file_path': self.monitor_file_path
         }
-        
+
         with open(self.tracker_file_path, 'wb') as f:
             pickle.dump(tracker_data, f)
         logger.debug("Dump tracker to %s", self.tracker_file_path)
 
+    def __del__(self):
+        """
+        Delete the tracker
+        """
+        if self.state is None:
+            os.remove(self.tracker_file_path)
+            logger.info("Delete tracker file: %s", self.tracker_file_path)
+
 def recover_task_tracker(file_path) -> TaskTracker:
+    """
+    Recover the task tracker from the file
+    """
+    logger.info("recover task tracker from %s", file_path)
     with open(file_path, 'rb') as f:
         tracker_data = pickle.load(f)
-    
-    # Recreate TaskTracker object
     tracker = TaskTracker(
         image=tracker_data['image'],
         get_fileobj=tracker_data['get_fileobj'],
@@ -149,9 +164,8 @@ def recover_task_tracker(file_path) -> TaskTracker:
         monitor_file_path=tracker_data['monitor_file_path'],
         collection_path=tracker_data['collection_path']
     )
-    
-    # Restore state
+
     tracker.task = tracker_data['task']
     tracker.state = tracker_data['state']
-    
+
     return tracker
