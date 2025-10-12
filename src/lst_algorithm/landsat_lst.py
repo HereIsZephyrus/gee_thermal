@@ -128,8 +128,6 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
     Returns:
     - landsatLST: Processed Landsat collection with LST
     """
-    # Ensure Earth Engine is initialized
-    initialize_ee()
     # Check if the provided Landsat collection is valid
     if landsat not in LANDSAT_BANDS.keys():
         raise ValueError(

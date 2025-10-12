@@ -39,7 +39,7 @@ class DriveManager:
         if (gauth.credentials is None):
             gauth.LocalWebserverAuth()
         gauth.Refresh()
-        if self.gauth.credentials.refresh_token is None:
+        if gauth.credentials.refresh_token is None:
             logger.warning("refresh token is None")
         return gauth
 

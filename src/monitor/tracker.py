@@ -30,12 +30,11 @@ class HoldState(TaskState):
     """
     max_task_num = 10
     def handle(self, tracker):
-        monitor_record_file = os.path.join(tracker.monitor_folder_path,"monitor.txt")
-        with open(monitor_record_file, 'r', encoding='utf-8') as f:
+        with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         if len(lines) >= self.max_task_num:
             return HoldState()
-        self.file_writer.write(content = tracker.monitor_file_path, mode='a')
+        tracker.file_writer.write(content = tracker.tracker_file_path, mode='a')
         tracker.task = tracker.image.create_export_task()
         return ExportState()
 
@@ -74,25 +73,31 @@ class CompeletedState(TaskState):
         file_obj = tracker.get_file_obj(cloud_file_name)
         file_obj.Delete()
         logger.info("delete %s", cloud_file_name)
-        with open(os.path.join(self.monitor_folder_path,"monitor.txt"), 'r', encoding='utf-8') as f:
+        with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-        lines = [line for line in lines if line.strip() != self.monitor_file_path]
-        self.file_writer.write(content = "\n".join(lines), mode='w')
+        lines = [line for line in lines if line.strip() != tracker.monitor_file_path]
+        tracker.file_writer.write(content = "\n".join(lines), mode='w')
         return None
 
 class TaskTracker:
     """
     Track the status of a task
     """
-    def __init__(self, image, get_fileobj, monitor_folder_path, collection_path, monitor_file):
+    def __init__(self, image, get_fileobj, tracker_folder_path, monitor_file_path, collection_path):
         self.image = image
         self.get_fileobj = get_fileobj
-        self.monitor_folder_path = monitor_folder_path
-        self.monitor_file_path = os.path.join(self.monitor_folder_path, f"{self.image.image_name}.pkl")
+        self.tracker_file_path = os.path.join(tracker_folder_path, f"{self.image.image_name}.pkl")
         self.task = None
         self.state = None
         self.collection_path = collection_path
-        self.file_writer = FileWriter(monitor_file)
+        self.file_writer = FileWriter(monitor_file_path)
+
+    @property
+    def monitor_file_path(self):
+        """
+        Get the monitor file path
+        """
+        return self.file_writer.file_path
 
     def start(self):
         """
@@ -113,9 +118,9 @@ class TaskTracker:
         """
         Dump the tracker to file
         """
-        with open(self.monitor_file_path, 'wb') as f:
+        with open(self.tracker_file_path, 'wb') as f:
             pickle.dump(self, f)
-        logger.info("Dump tracker to %s", self.monitor_file_path)
+        logger.info("Dump tracker to %s", self.tracker_file_path)
 
 def recover_task_tracker(file_path) -> TaskTracker:
     with open(file_path, 'rb') as f:

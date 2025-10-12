@@ -13,7 +13,7 @@ class ProjectManager:
     """
     Total project manager
     """
-    def __init__(self, project_name: str, credentials_file_path: str, collection_path: str, drive_folder_id: str, cloud_folder_name: str, quality_file_path: str):
+    def __init__(self, project_name: str, credentials_file_path: str, collection_path: str, drive_folder_id: str, cloud_folder_name: str, quality_file_path: str, monitor_file_path: str):
         self.project_name = project_name
         self.credentials_file_path = credentials_file_path
         self.collection_path = collection_path
@@ -23,6 +23,7 @@ class ProjectManager:
         self.ee_manager = None
         self.initialized = False
         self.quality_file_path = quality_file_path
+        self.monitor_file_path = monitor_file_path
 
     def initialize(self) -> bool:
         """
@@ -42,22 +43,25 @@ class ProjectManager:
         Initialize the cloud connection parameters
         """
         self.ee_manager = EEManager(self.project_name)
+        logger.info("Initialized ee manager")
         self.drive_manager = DriveManager(self.credentials_file_path, parent_folder_id=self.drive_folder_id, cloud_folder_name=self.cloud_folder_name)
+        logger.info("Initialized drive manager")
         return True
 
-    def _init_local(self):
+    def _init_local(self) -> bool:
         """
         Initialize the local connection parameters
         """
-        record_file_path = self.quality_file_path # csv
-        monitor_folder_path = self.monitor_folder_path
+        os.makedirs(os.path.dirname(self.monitor_file_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self.quality_file_path), exist_ok=True)
         header = ['city', 'year', 'month', 'toa_image_porpotion', 'sr_image_porpotion', 'toa_cloud_ratio', 'sr_cloud_ratio', 'day']
-        with open(monitor_folder_path, 'w', newline='', encoding='utf-8') as f:
+        with open(self.monitor_file_path, 'w', newline='', encoding='utf-8') as f:
             pass
-        if (not os.path.exists(record_file_path)):
-            with open(record_file_path, 'w', newline='', encoding='utf-8') as f:
+        if (not os.path.exists(self.quality_file_path)):
+            with open(self.quality_file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
+        return True
 
     def getCityAsset(self, city_name: str):
         """

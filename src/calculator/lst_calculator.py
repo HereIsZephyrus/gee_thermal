@@ -9,8 +9,6 @@ from ..lst_algorithm import fetch_best_landsat_image
 logger = logging.getLogger(__name__)
 
 class LstCalculator(Calculator):
-    def __init__(self, city_asset: CityAsset, year: int, month: int, quality_file_path: str):
-        super().__init__(city_asset, year, month, quality_file_path)
 
     def calculate(self):
         """ 
@@ -27,12 +25,12 @@ class LstCalculator(Calculator):
         for satellite in satellite_list:
             try:
                 landsat_coll, toa_porpotion, sr_porpotion, toa_cloud, sr_cloud , day = fetch_best_landsat_image(
-                    satellite_name=satellite,
+                    landsat=satellite,
                     date_start=date_start,
                     date_end=date_end,
-                    city_geometry=self.city_asset.geometry,
-                    cloud_threshold=cloud_threshold,
-                    urban_geometry=self.city_asset.urban_geometry,
+                    geometry=self.city_asset.city_geometry,
+                    cloud_theshold=cloud_threshold,
+                    cloud_cover_geometry=self.city_asset.urban_geometry,
                     use_ndvi=use_ndvi)
                 with open(quality_file_path, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
@@ -45,9 +43,5 @@ class LstCalculator(Calculator):
             except Exception as e:
                 logging.error("fetch error: %s\n traceback: %s", e, traceback.format_exc())
                 continue
-
-        if landsat_coll is None:
-            logging.error("No Landsat data found")
-            return None
-        else:
-            self._image = landsat_coll
+        
+        self.image = landsat_coll

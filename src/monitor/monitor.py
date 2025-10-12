@@ -11,13 +11,22 @@ class Monitor:
     """
     Monitor for the system, to trace export task and network status
     """
-    def __init__(self, monitor_folder_path: str, drive_manager: DriveManager, collection_path, refresh_interval: int = 15):
-        self.monitor_folder_path = monitor_folder_path
+    def __init__(self, monitor_file_path: str, drive_manager: DriveManager, collection_path, refresh_interval: int = 15):
         self.collection_path = collection_path
-        self.monitor_file = os.path.join(monitor_folder_path, 'monitor.txt')
+        self.monitor_file_path = monitor_file_path
         self.trackers = []
         self.drive_manager = drive_manager
         self.refresh_interval = refresh_interval
+        self.tracker_folder_path = self._create_tracker_folder()
+
+    def _create_tracker_folder(self):
+        """
+        Create the tracker folder
+        """
+        base_path = os.path.dirname(self.monitor_file_path)
+        tracker_folder_path = os.path.join(base_path, "tracker")
+        os.makedirs(tracker_folder_path, exist_ok=True)
+        return tracker_folder_path
 
     def export(self, image):
         """
@@ -26,9 +35,9 @@ class Monitor:
         tracker = TaskTracker(
             image=image,
             get_fileobj=self.drive_manager.get_fileobj,
-            monitor_folder_path=self.monitor_folder_path,
-            collection_path=self.collection_path,
-            monitor_file = self.monitor_file
+            tracker_folder_path=self.tracker_folder_path,
+            monitor_file_path=self.monitor_file_path,
+            collection_path=self.collection_path
         )
         tracker.start()
         self.trackers.append(tracker)
@@ -57,7 +66,7 @@ class Monitor:
         """
         Load the monitor file
         """
-        with open(self.monitor_file, 'r', encoding='utf-8') as f:
+        with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
             self.trackers = [recover_task_tracker(line) for line in f.readlines()]
 
     def _check_trackers(self):
@@ -68,7 +77,7 @@ class Monitor:
             try:
                 if not tracker.check_task_status(): # failed or finished
                     self.trackers.remove(tracker)
-                    with open(self.monitor_file, 'w', encoding='utf-8') as f:
+                    with open(self.monitor_file_path, 'w', encoding='utf-8') as f:
                         f.writelines([line for line in f.readlines() if line.strip() != tracker.tracker_file_path])
             except Exception as e:
                 logger.error("error to check tracker: %s", e)

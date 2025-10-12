@@ -17,6 +17,9 @@ class Image:
         self.bands = None
 
     def add_band(self, sub_image: ee.Image):
+        """
+        Add a band to the image
+        """
         if sub_image is None:
             logger.error("sub_image is None")
             return

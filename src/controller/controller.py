@@ -1,21 +1,16 @@
 import logging
 from functools import partial
-from typing import TYPE_CHECKING
 from .export import export_image
 from ..communicator.ee_manager import CityAsset
-
-if TYPE_CHECKING:
-    from ..monitor import Monitor
+from ..monitor import Monitor
 
 logger = logging.getLogger(__name__)
 
 class Controller:
-    def __init__(self, project_manager, year_range: tuple, monitor_folder_path: str):
+    def __init__(self, project_manager, year_range: tuple):
         self.project_manager = project_manager
         self.year_range = year_range
-        # 延迟导入以避免循环导入
-        from ..monitor import Monitor
-        self.monitor = Monitor(monitor_folder_path, project_manager.drive_manager, project_manager.collection_path)
+        self.monitor = Monitor(project_manager.monitor_file_path, project_manager.drive_manager, project_manager.collection_path)
 
     def create_image_series(self):
         """
@@ -29,8 +24,9 @@ class Controller:
         export_func = partial(export_image,
             drive_manager=self.project_manager.drive_manager,
             city_asset=city_asset,
-            save_path=self.project_manager.save_path,
-            monitor=self.monitor
+            save_path=self.project_manager.collection_path,
+            monitor=self.monitor,
+            quality_file_path=self.project_manager.quality_file_path
         )
         for year in range(self.year_range[0], self.year_range[1]+1):
             for month in range(1,13):
