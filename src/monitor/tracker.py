@@ -36,7 +36,7 @@ class HoldState(TaskState):
             return HoldState()
         tracker.file_writer.write(content = tracker.tracker_file_path, mode='a')
         tracker.task = tracker.image.create_export_task()
-        logger.info("start task: %s", tracker.task)
+        logger.info("ready to export : %s", tracker.task)
         return ExportState()
 
 class ExportState(TaskState):
@@ -53,7 +53,7 @@ class ExportState(TaskState):
             if state in ['FAILED', 'CANCELLED']:
                 logger.info("Failed to export %s", tracker.image.image_name)
                 return CompeletedState()
-        logger.info("exporting %s", tracker.image.image_name)
+            logger.info("exporting %s", tracker.image.image_name)
         return ExportState()
 
 class DownloadState(TaskState):
@@ -62,7 +62,8 @@ class DownloadState(TaskState):
     """
     def handle(self, tracker):
         cloud_file_name = tracker.image.image_name
-        file_obj = tracker.get_file_obj(cloud_file_name)
+        file_obj = tracker.get_fileobj(cloud_file_name)
+        logger.info("get fileobj: %s", file_obj)
         local_file_name = os.path.join(tracker.collection_path, cloud_file_name)
         logger.info("downloading to %s", local_file_name)
         file_obj.GetContentFile(local_file_name)
@@ -73,7 +74,7 @@ class CompeletedState(TaskState):
     """
     def handle(self, tracker):
         cloud_file_name = tracker.image.image_name
-        file_obj = tracker.get_file_obj(cloud_file_name)
+        file_obj = tracker.get_fileobj(cloud_file_name)
         file_obj.Delete()
         logger.info("delete %s", cloud_file_name)
         with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
@@ -134,7 +135,7 @@ class TaskTracker:
         
         with open(self.tracker_file_path, 'wb') as f:
             pickle.dump(tracker_data, f)
-        logger.info("Dump tracker to %s", self.tracker_file_path)
+        logger.debug("Dump tracker to %s", self.tracker_file_path)
 
 def recover_task_tracker(file_path) -> TaskTracker:
     with open(file_path, 'rb') as f:

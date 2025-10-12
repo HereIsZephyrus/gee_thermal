@@ -63,11 +63,13 @@ class Monitor:
         except Exception as e:
             logger.error("error to check and refresh token: %s", e)
 
-    def create_new_session(self, year: int, month: int) -> bool:
+    def create_new_session(self, year: int, month: int, exclude_list: list) -> bool:
         """
         Check if the year-month pair is not recorded in the monitor file
         """
         session_key = f"{year}-{month:02}"
+        if session_key in exclude_list:
+            return False
         with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         for line in lines:
@@ -80,7 +82,7 @@ class Monitor:
         Load the monitor file
         """
         with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
-            self.trackers = [recover_task_tracker(line) for line in f.readlines()]
+            self.trackers = [recover_task_tracker(line.strip()) for line in f.readlines()]
 
     def _check_trackers(self):
         """

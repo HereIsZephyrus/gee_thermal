@@ -55,9 +55,10 @@ class ProjectManager:
         os.makedirs(os.path.dirname(self.monitor_file_path), exist_ok=True)
         os.makedirs(os.path.dirname(self.quality_file_path), exist_ok=True)
         header = ['city', 'year', 'month', 'toa_image_porpotion', 'sr_image_porpotion', 'toa_cloud_ratio', 'sr_cloud_ratio', 'day']
-        with open(self.monitor_file_path, 'w', newline='', encoding='utf-8') as f:
-            pass
-        if (not os.path.exists(self.quality_file_path)):
+        if not os.path.exists(self.monitor_file_path):
+            with open(self.monitor_file_path, 'w', newline='', encoding='utf-8') as f:
+                pass
+        if not os.path.exists(self.quality_file_path):
             with open(self.quality_file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
