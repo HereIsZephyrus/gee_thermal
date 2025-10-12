@@ -44,7 +44,7 @@ class ProjectManager:
         """
         self.ee_manager = EEManager(self.project_name)
         logger.info("Initialized ee manager")
-        self.drive_manager = DriveManager(self.credentials_file_path, parent_folder_id=self.drive_folder_id, cloud_folder_name=self.cloud_folder_name)
+        self.drive_manager = DriveManager(self.credentials_file_path, folder_id=self.drive_folder_id, cloud_folder_name=self.cloud_folder_name)
         logger.info("Initialized drive manager")
         return True
 

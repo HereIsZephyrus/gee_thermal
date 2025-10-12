@@ -3,12 +3,13 @@ The main entry point for the workflow image
 """
 import logging
 import os
+import time
 from dotenv import load_dotenv
 from .controller import Parser, Controller
 from .communicator import ProjectManager
 
 logging.basicConfig(
-    filename='workflow_image.log',
+    filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
     filemode='w',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'

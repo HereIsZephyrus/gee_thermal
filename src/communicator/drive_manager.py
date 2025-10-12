@@ -11,11 +11,11 @@ class DriveManager:
     """
     Manage the drive
     """
-    def __init__(self, credentials_file_path: str, parent_folder_id: str, cloud_folder_name: str):
+    def __init__(self, credentials_file_path: str, folder_id: str, cloud_folder_name: str):
         self.gauth = self._init_gauth(credentials_file_path)
         self.drive = GoogleDrive(self.gauth)
         self.cloud_folder_name = cloud_folder_name
-        self.folder_id = self._create_folder(parent_folder_id, cloud_folder_name)
+        self.folder_id = folder_id
 
     def get_fileobj(self, cloud_file_name):
         """
@@ -42,34 +42,6 @@ class DriveManager:
         if gauth.credentials.refresh_token is None:
             logger.warning("refresh token is None")
         return gauth
-
-    def _create_folder(self, parent_folder_id, folder_name):
-        """
-        Create a folder in the drive
-
-        Args:
-            parent_folder_id: parent folder id
-            folder_name: folder name
-
-        Returns:
-            folder id
-        """
-        folder_metadata = {
-            'title': folder_name,
-            'parents': [{'id': parent_folder_id}],
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
-        all_files = self.drive.ListFile({'q': "trashed=false"}).GetList()
-        logger.info("current drive all files: %s", len(all_files))
-        logger.info("token current expires in: %s", self.gauth.credentials.token_expiry)
-        try:
-            folder = self.drive.CreateFile(folder_metadata)
-            folder.Upload()
-            logger.info("Created folder: %s, folder id: %s", folder_name, folder['id'])
-            return folder['id']
-        except Exception as e:
-            logger.error("Failed to create folder: %s", str(e))
-            return None
 
     def get_folder_id_by_name(self, folder_name, parent_id='root'):
         """

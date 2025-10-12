@@ -9,9 +9,9 @@ class Image:
     """
     The ee image class for exporting image to the drive
     """
-    def __init__(self, drive_manager: DriveManager, save_path: str, image_name: str, geometry: ee.Geometry):
+    def __init__(self, drive_manager: DriveManager, cloud_path: str, image_name: str, geometry: ee.Geometry):
         self.drive_manager = drive_manager
-        self.save_path = save_path
+        self.cloud_path = cloud_path
         self.image_name = image_name
         self.geometry = geometry
         self.bands = None
@@ -38,7 +38,7 @@ class Image:
         try:
             task = ee.batch.Export.image.toDrive(image=self.bands,
                                     description=self.image_name,
-                                    folder=f'{self.save_path}',
+                                    folder=f'{self.cloud_path}',
                                     scale=30,
                                     crs='EPSG:4326',
                                     region=self.geometry,

@@ -40,6 +40,7 @@ class Monitor:
             collection_path=self.collection_path
         )
         tracker.start()
+        logger.info("start tracker: %s", tracker.tracker_file_path)
         self.trackers.append(tracker)
 
     def start(self):
@@ -62,6 +63,18 @@ class Monitor:
         except Exception as e:
             logger.error("error to check and refresh token: %s", e)
 
+    def create_new_session(self, year: int, month: int) -> bool:
+        """
+        Check if the year-month pair is not recorded in the monitor file
+        """
+        session_key = f"{year}-{month:02}"
+        with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        for line in lines:
+            if session_key in line:
+                return False
+        return True
+
     def _load_monitor_file(self):
         """
         Load the monitor file
@@ -75,7 +88,7 @@ class Monitor:
         """
         for tracker in self.trackers:
             try:
-                if not tracker.check_task_status(): # failed or finished
+                if not tracker.ckeck_status(): # failed or finished
                     self.trackers.remove(tracker)
                     with open(self.monitor_file_path, 'w', encoding='utf-8') as f:
                         f.writelines([line for line in f.readlines() if line.strip() != tracker.tracker_file_path])
