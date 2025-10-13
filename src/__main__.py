@@ -5,8 +5,10 @@ import logging
 import os
 import time
 from dotenv import load_dotenv
-from .controller import Parser, Controller
+from .controller import LstParser, Controller
 from .communicator import ProjectManager
+from .communicator.ee_manager import CityAsset
+from .calculator import LstCalculator
 
 logging.basicConfig(
     filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
@@ -41,15 +43,26 @@ def main():
         return
     controller = Controller(
         project_manager=project_manager,
-        year_range=year_range
+        year_range=year_range,
+        parser=LstParser(quality_file_path)
+    )
+    city_asset: CityAsset = project_manager.getCityAsset(city_name = "武汉市")
+    calculator = LstCalculator(
+        city_asset=city_asset,
+        quality_file_path=quality_file_path,
+        missing_file_path=controller.missing_file_path
     )
     try:
-        controller.create_image_series()
+        controller.create_image_series(calculator)
     except Exception as e:
         logger.error("Failed to create image series: %s", e)
         return
-    parser = Parser(quality_file_path, year_range=year_range)
-    parser.parse_record()
+    
+    try:
+        controller.post_process()
+    except Exception as e:
+        logger.error("Failed to post process: %s", e)
+        return
 
 if __name__ == '__main__':
     main()

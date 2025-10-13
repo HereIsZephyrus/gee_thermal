@@ -12,6 +12,7 @@ class DriveManager:
     Manage the drive
     """
     def __init__(self, credentials_file_path: str, folder_id: str, cloud_folder_name: str):
+        self.credentials_file_path = credentials_file_path
         self.gauth = self._init_gauth(credentials_file_path)
         self.drive = GoogleDrive(self.gauth)
         self.cloud_folder_name = cloud_folder_name
@@ -38,7 +39,6 @@ class DriveManager:
         gauth.LoadCredentialsFile(credentials_file_path)
         if (gauth.credentials is None):
             gauth.LocalWebserverAuth()
-        gauth.Refresh()
         if gauth.credentials.refresh_token is None:
             logger.warning("refresh token is None")
         return gauth

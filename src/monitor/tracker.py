@@ -1,8 +1,8 @@
 import os
 import logging
+import time
 from abc import ABC, abstractmethod
 import pickle
-from .writer import ThreadSafeFileWriter as FileWriter
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +28,15 @@ class HoldState(TaskState):
     """
     State when the task is hold to wait network or parallel limit
     """
-    max_task_num = 10
+    max_task_num = 5
     def handle(self, tracker):
         with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         if len(lines) >= self.max_task_num:
             return HoldState()
-        tracker.file_writer.write(content = tracker.tracker_file_path, mode='a')
+        # Write tracker file path to monitor file
+        with open(tracker.monitor_file_path, 'a', encoding='utf-8') as f:
+            f.write(tracker.tracker_file_path + '\n')
         tracker.task = tracker.image.create_export_task()
         logger.info("ready to export : %s", tracker.task)
         return ExportState()
@@ -67,9 +69,25 @@ class DownloadState(TaskState):
         local_file_name = os.path.join(tracker.collection_path, cloud_file_name)
         local_file_name = f"{local_file_name}.tif"
         logger.info("downloading to %s", local_file_name)
-        file_obj.GetContentFile(local_file_name)
-        logger.info("download completed: %s", cloud_file_name)
-        return CompeletedState()
+        
+        # Add retry mechanism for SSL/network errors
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                file_obj.GetContentFile(local_file_name)
+                logger.info("download completed: %s", cloud_file_name)
+                return CompeletedState()
+            except (OSError, IOError, ConnectionError) as e:
+                error_msg = str(e)
+                if "SSL" in error_msg or "EOF" in error_msg or "Connection" in error_msg:
+                    logger.warning("Network error during download (attempt %d/%d): %s", attempt + 1, max_retries, error_msg)
+                    if attempt == max_retries - 1:
+                        logger.error("Failed to download %s after %d attempts", cloud_file_name, max_retries)
+                        return CompeletedState()  # Still return CompletedState to avoid infinite retry
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    logger.error("Unexpected error during download: %s", error_msg)
+                    return CompeletedState()
 
 class CompeletedState(TaskState):
     """
@@ -80,10 +98,25 @@ class CompeletedState(TaskState):
         file_obj = tracker.get_fileobj(cloud_file_name)
         file_obj.Delete()
         logger.info("delete %s", cloud_file_name)
-        with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        lines = [line for line in lines if line.strip() != tracker.monitor_file_path]
-        tracker.file_writer.write(content = "\n".join(lines), mode='w')
+        # Remove tracker file path from monitor file using native file operations
+        try:
+            # Read current content
+            if os.path.exists(tracker.monitor_file_path):
+                with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                
+                # Filter out current tracker file path
+                filtered_lines = [line for line in lines if line.strip() != tracker.tracker_file_path]
+                
+                # Write back the filtered content
+                with open(tracker.monitor_file_path, 'w', encoding='utf-8') as f:
+                    f.writelines(filtered_lines)
+                
+                logger.info("Removed tracker from monitor file: %s", tracker.tracker_file_path)
+            else:
+                logger.warning("Monitor file does not exist: %s", tracker.monitor_file_path)
+        except (IOError, OSError) as e:
+            logger.error("Error updating monitor file: %s", e)
         return None
 
 class TaskTracker:
@@ -97,14 +130,7 @@ class TaskTracker:
         self.task = None
         self.state = None
         self.collection_path = collection_path
-        self.file_writer = FileWriter(monitor_file_path)
-
-    @property
-    def monitor_file_path(self):
-        """
-        Get the monitor file path
-        """
-        return self.file_writer.file_path
+        self.monitor_file_path = monitor_file_path
 
     def start(self):
         """
@@ -127,7 +153,7 @@ class TaskTracker:
         """
         if self.state is None:
             return
-        # Create a copy without the file_writer (which contains threading.Lock)
+        # Create a copy for serialization
         tracker_data = {
             'image': self.image,
             'get_fileobj': self.get_fileobj,
@@ -154,18 +180,26 @@ def recover_task_tracker(file_path) -> TaskTracker:
     """
     Recover the task tracker from the file
     """
-    logger.info("recover task tracker from %s", file_path)
-    with open(file_path, 'rb') as f:
-        tracker_data = pickle.load(f)
-    tracker = TaskTracker(
-        image=tracker_data['image'],
-        get_fileobj=tracker_data['get_fileobj'],
-        tracker_folder_path=os.path.dirname(tracker_data['tracker_file_path']),
-        monitor_file_path=tracker_data['monitor_file_path'],
-        collection_path=tracker_data['collection_path']
-    )
+    if not os.path.exists(file_path):
+        logger.warning("Tracker file does not exist: %s", file_path)
+        return None
+    
+    try:
+        logger.info("recover task tracker from %s", file_path)
+        with open(file_path, 'rb') as f:
+            tracker_data = pickle.load(f)
+        tracker = TaskTracker(
+            image=tracker_data['image'],
+            get_fileobj=tracker_data['get_fileobj'],
+            tracker_folder_path=os.path.dirname(tracker_data['tracker_file_path']),
+            monitor_file_path=tracker_data['monitor_file_path'],
+            collection_path=tracker_data['collection_path']
+        )
 
-    tracker.task = tracker_data['task']
-    tracker.state = tracker_data['state']
+        tracker.task = tracker_data['task']
+        tracker.state = tracker_data['state']
 
-    return tracker
+        return tracker
+    except (IOError, OSError, pickle.PickleError) as e:
+        logger.error("Failed to recover tracker from %s: %s", file_path, e)
+        return None

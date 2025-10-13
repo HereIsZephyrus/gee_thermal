@@ -1,7 +1,7 @@
 import logging
 import os
 import threading
-from datetime import datetime, timedelta
+import time
 from .tracker import TaskTracker, recover_task_tracker
 from ..communicator.drive_manager import DriveManager
 
@@ -81,8 +81,49 @@ class Monitor:
         """
         Load the monitor file
         """
-        with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
-            self.trackers = [recover_task_tracker(line.strip()) for line in f.readlines()]
+        if not os.path.exists(self.monitor_file_path):
+            logger.info("Monitor file does not exist, starting with empty trackers list")
+            self.trackers = []
+            return
+        
+        try:
+            with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            # Filter out None values from failed recoveries
+            self.trackers = []
+            for line in lines:
+                line = line.strip()
+                if line:  # Skip empty lines
+                    tracker = recover_task_tracker(line)
+                    if tracker is not None:
+                        self.trackers.append(tracker)
+                    else:
+                        # Remove the invalid tracker file path from monitor file
+                        self._remove_tracker_from_monitor_file(line)
+            
+            logger.info("Loaded %d valid trackers from monitor file", len(self.trackers))
+        except (IOError, OSError) as e:
+            logger.error("Error loading monitor file: %s", e)
+            self.trackers = []
+
+    def _remove_tracker_from_monitor_file(self, tracker_file_path):
+        """
+        Remove a tracker file path from the monitor file
+        """
+        try:
+            with open(self.monitor_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            # Filter out the invalid tracker file path
+            filtered_lines = [line for line in lines if line.strip() != tracker_file_path]
+            
+            with open(self.monitor_file_path, 'w', encoding='utf-8') as f:
+                f.writelines(filtered_lines)
+            
+            logger.info("Removed invalid tracker from monitor file: %s", tracker_file_path)
+        except (IOError, OSError) as e:
+            logger.error("Error removing tracker from monitor file: %s", e)
 
     def _check_trackers(self):
         """
@@ -100,12 +141,31 @@ class Monitor:
         threading.Timer(self.refresh_interval, self._check_trackers).start()
 
     def _check_and_refresh_token(self):
-        if self.drive_manager.gauth.credentials.refresh_token is None:
-            raise Exception('refresh token is None')
-        delta_time = (self.drive_manager.gauth.credentials.token_expiry + timedelta(hours=8) - datetime.now()).total_seconds() # adjust for UTC+8
-        if delta_time < 300:
-            self.drive_manager.gauth.Refresh()
-            self.drive_manager.gauth.SaveCredentialsFile(self.drive_manager.credentials_file_path)
-            logger.info("token current expires in: %s", self.drive_manager.gauth.credentials.token_expiry)
+        try:
+            if self.drive_manager.gauth.credentials.refresh_token is None:
+                logger.error('refresh token is None')
+                return
+            
+            # Add retry mechanism for network issues
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    self.drive_manager.gauth.Refresh()
+                    self.drive_manager.gauth.SaveCredentialsFile(self.drive_manager.credentials_file_path)
+                    logger.info("token refreshed successfully, expires in: %s", self.drive_manager.gauth.credentials.token_expiry)
+                    break
+                except (BrokenPipeError, ConnectionError, OSError) as e:
+                    logger.warning("Network error during token refresh (attempt %d/%d): %s", attempt + 1, max_retries, e)
+                    if attempt == max_retries - 1:
+                        logger.error("Failed to refresh token after %d attempts", max_retries)
+                        return
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                except (ValueError, RuntimeError) as e:
+                    logger.error("Unexpected error during token refresh: %s", e)
+                    return
 
-        threading.Timer(self.refresh_interval, self._check_and_refresh_token).start()
+        except Exception as e:
+            logger.error("Error in token refresh process: %s", e)
+        finally:
+            # Schedule next refresh regardless of success/failure
+            threading.Timer(self.refresh_interval * 5, self._check_and_refresh_token).start()

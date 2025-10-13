@@ -20,9 +20,6 @@ class Image:
         """
         Add a band to the image
         """
-        if sub_image is None:
-            logger.error("sub_image is None")
-            return
         if self.bands is None:
             self.bands = sub_image
             logger.info("create image with band: %s", self.image_name)

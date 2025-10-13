@@ -6,31 +6,25 @@ from pypinyin import lazy_pinyin as pinyin
 from .image import Image
 from ..communicator.drive_manager import DriveManager
 from ..communicator.ee_manager import CityAsset
-from ..calculator import LstCalculator
 from ..monitor import Monitor
 
 logger = logging.getLogger(__name__)
 
-def export_image(drive_manager: DriveManager, city_asset: CityAsset, cloud_path: str, monitor: Monitor, year: int, month: int, quality_file_path: str, missing_file_path: str):
+def export_image(
+    drive_manager: DriveManager, city_asset: CityAsset, cloud_path: str,
+    monitor: Monitor, year: int, month: int,
+    calculator):
     """
     export the lst image to the drive
     """
     e_city_name = ''.join(pinyin(city_asset.name))
     image_name = f"{e_city_name}-{year}-{month:02}"
-    image = Image(drive_manager, cloud_path, image_name, city_asset.city_geometry)
-    lst_calculator = LstCalculator(
-        city_asset=city_asset,
-        year=year,
-        month=month,
-        quality_file_path=quality_file_path
-    )
-    lst_calculator.calculate()
-    if lst_calculator.image is None:
-        logger.warning("No Landsat data found for %s", image_name)
-        with open(missing_file_path, 'a', encoding='utf-8') as f:
-            f.write(f"{year}-{month:02}\n")
+    bands = calculator.calculate(year, month)
+    if bands is None:
+        logger.info("no bands for %s", image_name)
         return False
-    image.add_band(lst_calculator.image)
+    image = Image(drive_manager, cloud_path, image_name, city_asset.city_geometry)
+    image.add_band(bands)
     try:
         monitor.export(image)
     except Exception as e:
