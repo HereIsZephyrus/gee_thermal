@@ -75,9 +75,10 @@ class DownloadState(TaskState):
                 file_obj.GetContentFile(local_file_name)
                 logger.info("download completed: %s", cloud_file_name)
                 return CompeletedState()
-            except (OSError, IOError, ConnectionError) as e:
+            except (OSError, IOError, ConnectionError, Exception) as e:
                 error_msg = str(e)
-                if "SSL" in error_msg or "EOF" in error_msg or "Connection" in error_msg:
+                # Handle various network and download errors
+                if any(keyword in error_msg for keyword in ["SSL", "EOF", "Connection", "IncompleteRead", "Broken pipe"]):
                     logger.warning("Network error during download (attempt %d/%d): %s", attempt + 1, max_retries, error_msg)
                     if attempt == max_retries - 1:
                         logger.error("Failed to download %s after %d attempts", cloud_file_name, max_retries)
@@ -95,7 +96,7 @@ class CompeletedState(TaskState):
         cloud_file_name = tracker.image.image_name
         file_obj = tracker.get_fileobj(cloud_file_name)
         file_obj.Delete()
-        logger.info("delete %s", cloud_file_name)
+        logger.info("Delete cloud file: %s", cloud_file_name)
         return None
 
 class TaskTracker:
@@ -147,11 +148,17 @@ class TaskTracker:
 
     def __del__(self):
         """
-        Delete the tracker
+        Delete the tracker file when the tracker is completed
         """
         if self.state is None:
-            os.remove(self.tracker_file_path)
-            logger.info("Delete tracker file: %s", self.tracker_file_path)
+            try:
+                if os.path.exists(self.tracker_file_path):
+                    os.remove(self.tracker_file_path)
+                    logger.info("Successfully deleted tracker file: %s", self.tracker_file_path)
+                else:
+                    logger.warning("Tracker file does not exist: %s", self.tracker_file_path)
+            except OSError as e:
+                logger.error("Failed to delete tracker file %s: %s", self.tracker_file_path, e)
 
 def recover_task_tracker(file_path) -> TaskTracker:
     """

@@ -28,7 +28,7 @@ def main():
     tracker_folder_path = os.getenv('TRACKER_FOLDER_PATH')
     drive_folder_id = os.getenv('DRIVE_FOLDER_ID')
     cloud_folder_name = os.getenv('DRIVE_FOLDER_NAME')
-    year_range = (2015, 2025)
+    year_range = (2020, 2025)
     project_manager = ProjectManager(
         project_name=project_name,
         credentials_file_path=credentials_file_path,

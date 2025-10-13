@@ -54,6 +54,7 @@ class Controller:
             city_asset=calculator.city_asset,
             cloud_path=self.project_manager.cloud_folder_name,
             monitor=self.monitor,
+            missing_file_path=self.missing_file_path,
             calculator=calculator
         )
         for year in range(self.year_range[0], self.year_range[1]+1):
