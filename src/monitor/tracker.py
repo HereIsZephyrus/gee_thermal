@@ -182,6 +182,10 @@ def recover_task_tracker(file_path) -> TaskTracker:
         tracker.task = tracker_data['task']
         tracker.state = tracker_data['state']
 
+        if type(tracker.state) == HoldState:
+            logger.info("Hold state %s, skip", file_path)
+            return None
+
         return tracker
     except (IOError, OSError, pickle.PickleError) as e:
         logger.error("Failed to recover tracker from %s: %s", file_path, e)
