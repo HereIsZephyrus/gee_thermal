@@ -146,7 +146,7 @@ class TaskTracker:
             pickle.dump(tracker_data, f)
         logger.debug("Dump tracker to %s", self.tracker_file_path)
 
-    def __del__(self):
+    def delete(self):
         """
         Delete the tracker file when the tracker is completed
         """
@@ -159,6 +159,8 @@ class TaskTracker:
                     logger.warning("Tracker file does not exist: %s", self.tracker_file_path)
             except OSError as e:
                 logger.error("Failed to delete tracker file %s: %s", self.tracker_file_path, e)
+        else:
+            logger.warning("Delete tracker file when the tracker is not completed")
 
 def recover_task_tracker(file_path) -> TaskTracker:
     """

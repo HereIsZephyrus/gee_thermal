@@ -134,6 +134,7 @@ class Monitor:
         try:
             for tracker in self.trackers:
                 if not tracker.ckeck_status(): # failed or finished
+                    tracker.delete()
                     self.trackers.remove(tracker)
         except Exception as e:
             logger.error("error to check trackers: %s", e)
