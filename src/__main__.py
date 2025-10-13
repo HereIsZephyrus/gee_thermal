@@ -25,7 +25,7 @@ def main():
     collection_path = os.getenv('IMAGE_COLLECTION_PATH')
     project_name = os.getenv('PROJECT_NAME')
     quality_file_path = os.getenv('QUALITY_FILE_PATH')
-    monitor_file_path = os.getenv('MONITOR_FILE_PATH')
+    tracker_folder_path = os.getenv('TRACKER_FOLDER_PATH')
     drive_folder_id = os.getenv('DRIVE_FOLDER_ID')
     cloud_folder_name = os.getenv('DRIVE_FOLDER_NAME')
     year_range = (2015, 2025)
@@ -36,7 +36,7 @@ def main():
         drive_folder_id=drive_folder_id,
         cloud_folder_name=cloud_folder_name,
         quality_file_path=quality_file_path,
-        monitor_file_path=monitor_file_path,
+        tracker_folder_path=tracker_folder_path,
     )
     if not project_manager.initialize():
         logger.error("Failed to initialize project manager")
@@ -46,7 +46,7 @@ def main():
         year_range=year_range,
         parser=LstParser(quality_file_path)
     )
-    city_asset: CityAsset = project_manager.getCityAsset(city_name = "武汉市")
+    city_asset: CityAsset = project_manager.get_city_asset(city_name = "武汉市")
     calculator = LstCalculator(
         city_asset=city_asset,
         quality_file_path=quality_file_path,
@@ -57,7 +57,7 @@ def main():
     except Exception as e:
         logger.error("Failed to create image series: %s", e)
         return
-    
+
     try:
         controller.post_process()
     except Exception as e:

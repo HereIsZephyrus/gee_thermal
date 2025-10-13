@@ -25,7 +25,7 @@ DRIVE_FOLDER_ID= <your drive folder id>
 DRIVE_FOLDER_NAME= <your drive folder name>
 IMAGE_COLLECTION_PATH= <your local image collection folder path>
 QUALITY_FILE_PATH= <your local qualtiy recording file path>
-MONITOR_FILE_PATH= <your local monitor recording file path>
+TRACKER_FOLDER_PATH= <your local tracker folder path>
 CREDENTIALS_FILE_PATH= <your drive OAuth2.0 credientail file path>
 ```
 

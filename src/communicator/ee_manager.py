@@ -22,7 +22,7 @@ class CityAsset:
         """
         city geometry buffer has many scatters. select the largest polygon as the main urban area
         """
-        if (city_geometry.type().getInfo() == 'Polygon'):
+        if city_geometry.type().getInfo() == 'Polygon':
             return city_geometry
         geometry_num = city_geometry.geometries().length().getInfo()
         logger.debug("geometry_num: %s", geometry_num)
@@ -46,7 +46,7 @@ class EEManager:
         self.assets_path = f'projects/{self.project_name}/assets'
         ee.Initialize(project=self.project_name)
 
-    def getCityAsset(self, city_name: str) -> CityAsset:
+    def get_city_asset(self, city_name: str) -> CityAsset:
         """
         Get the city asset
         """

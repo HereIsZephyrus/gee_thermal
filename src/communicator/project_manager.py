@@ -13,7 +13,7 @@ class ProjectManager:
     """
     Total project manager
     """
-    def __init__(self, project_name: str, credentials_file_path: str, collection_path: str, drive_folder_id: str, cloud_folder_name: str, quality_file_path: str, monitor_file_path: str):
+    def __init__(self, project_name: str, credentials_file_path: str, collection_path: str, drive_folder_id: str, cloud_folder_name: str, quality_file_path: str, tracker_folder_path: str):
         self.project_name = project_name
         self.credentials_file_path = credentials_file_path
         self.collection_path = collection_path
@@ -23,7 +23,7 @@ class ProjectManager:
         self.ee_manager = None
         self.initialized = False
         self.quality_file_path = quality_file_path
-        self.monitor_file_path = monitor_file_path
+        self.tracker_folder_path = tracker_folder_path
 
     def initialize(self) -> bool:
         """
@@ -52,20 +52,17 @@ class ProjectManager:
         """
         Initialize the local connection parameters
         """
-        os.makedirs(os.path.dirname(self.monitor_file_path), exist_ok=True)
+        os.makedirs(self.tracker_folder_path, exist_ok=True)
         os.makedirs(os.path.dirname(self.quality_file_path), exist_ok=True)
         header = ['city', 'year', 'month', 'toa_image_porpotion', 'sr_image_porpotion', 'toa_cloud_ratio', 'sr_cloud_ratio', 'day']
-        if not os.path.exists(self.monitor_file_path):
-            with open(self.monitor_file_path, 'w', newline='', encoding='utf-8') as f:
-                pass
         if not os.path.exists(self.quality_file_path):
             with open(self.quality_file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
         return True
 
-    def getCityAsset(self, city_name: str):
+    def get_city_asset(self, city_name: str):
         """
         Get the city asset
         """
-        return self.ee_manager.getCityAsset(city_name)
+        return self.ee_manager.get_city_asset(city_name)

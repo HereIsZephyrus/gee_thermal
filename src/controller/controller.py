@@ -10,7 +10,7 @@ class Controller:
     def __init__(self, project_manager, year_range: tuple, parser):
         self.project_manager = project_manager
         self.year_range = year_range
-        self.monitor = Monitor(project_manager.monitor_file_path, project_manager.drive_manager, project_manager.collection_path)
+        self.monitor = Monitor(project_manager.tracker_folder_path, project_manager.drive_manager, project_manager.collection_path)
         self.missing_file_path = os.path.join(project_manager.collection_path, "missing.txt")
         self.exclude_list = self._create_exclude_list(project_manager.collection_path)
         self.parser = parser
@@ -64,6 +64,7 @@ class Controller:
                 else:
                     logger.info("Skipping %s-%s", year, month)
         logger.info("All done. >_<")
+        self.monitor.stop()
 
     def post_process(self):
         """

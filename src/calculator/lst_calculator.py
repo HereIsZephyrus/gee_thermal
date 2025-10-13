@@ -44,4 +44,3 @@ class LstCalculator(Calculator):
                 continue
 
         return landsat_coll
-

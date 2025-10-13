@@ -30,13 +30,11 @@ class HoldState(TaskState):
     """
     max_task_num = 5
     def handle(self, tracker):
-        with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        if len(lines) >= self.max_task_num:
+        # Count the number of .pkl files in tracker folder
+        tracker_folder = os.path.dirname(tracker.tracker_file_path)
+        pkl_files = [f for f in os.listdir(tracker_folder) if f.endswith('.pkl')]
+        if len(pkl_files) >= self.max_task_num:
             return HoldState()
-        # Write tracker file path to monitor file
-        with open(tracker.monitor_file_path, 'a', encoding='utf-8') as f:
-            f.write(tracker.tracker_file_path + '\n')
         tracker.task = tracker.image.create_export_task()
         logger.info("ready to export : %s", tracker.task)
         return ExportState()
@@ -48,7 +46,7 @@ class ExportState(TaskState):
     def handle(self, tracker):
         status = tracker.task.status()
         state = status['state']
-        if (state != 'READY'):
+        if state != 'READY':
             if state == 'COMPLETED':
                 logger.info("Success to export %s", tracker.image.image_name)
                 return DownloadState()
@@ -69,7 +67,7 @@ class DownloadState(TaskState):
         local_file_name = os.path.join(tracker.collection_path, cloud_file_name)
         local_file_name = f"{local_file_name}.tif"
         logger.info("downloading to %s", local_file_name)
-        
+
         # Add retry mechanism for SSL/network errors
         max_retries = 3
         for attempt in range(max_retries):
@@ -98,39 +96,19 @@ class CompeletedState(TaskState):
         file_obj = tracker.get_fileobj(cloud_file_name)
         file_obj.Delete()
         logger.info("delete %s", cloud_file_name)
-        # Remove tracker file path from monitor file using native file operations
-        try:
-            # Read current content
-            if os.path.exists(tracker.monitor_file_path):
-                with open(tracker.monitor_file_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-                
-                # Filter out current tracker file path
-                filtered_lines = [line for line in lines if line.strip() != tracker.tracker_file_path]
-                
-                # Write back the filtered content
-                with open(tracker.monitor_file_path, 'w', encoding='utf-8') as f:
-                    f.writelines(filtered_lines)
-                
-                logger.info("Removed tracker from monitor file: %s", tracker.tracker_file_path)
-            else:
-                logger.warning("Monitor file does not exist: %s", tracker.monitor_file_path)
-        except (IOError, OSError) as e:
-            logger.error("Error updating monitor file: %s", e)
         return None
 
 class TaskTracker:
     """
     Track the status of a task
     """
-    def __init__(self, image, get_fileobj, tracker_folder_path, monitor_file_path, collection_path):
+    def __init__(self, image, get_fileobj, tracker_folder_path, collection_path):
         self.image = image
         self.get_fileobj = get_fileobj
         self.tracker_file_path = os.path.join(tracker_folder_path, f"{self.image.image_name}.pkl")
         self.task = None
         self.state = None
         self.collection_path = collection_path
-        self.monitor_file_path = monitor_file_path
 
     def start(self):
         """
@@ -145,7 +123,7 @@ class TaskTracker:
         """
         self.state = self.state.handle(self)
         self.dump()
-        return (self.state is not None)
+        return self.state is not None
 
     def dump(self):
         """
@@ -160,8 +138,7 @@ class TaskTracker:
             'tracker_file_path': self.tracker_file_path,
             'task': self.task,
             'state': self.state,
-            'collection_path': self.collection_path,
-            'monitor_file_path': self.monitor_file_path
+            'collection_path': self.collection_path
         }
 
         with open(self.tracker_file_path, 'wb') as f:
@@ -183,7 +160,7 @@ def recover_task_tracker(file_path) -> TaskTracker:
     if not os.path.exists(file_path):
         logger.warning("Tracker file does not exist: %s", file_path)
         return None
-    
+
     try:
         logger.info("recover task tracker from %s", file_path)
         with open(file_path, 'rb') as f:
@@ -192,7 +169,6 @@ def recover_task_tracker(file_path) -> TaskTracker:
             image=tracker_data['image'],
             get_fileobj=tracker_data['get_fileobj'],
             tracker_folder_path=os.path.dirname(tracker_data['tracker_file_path']),
-            monitor_file_path=tracker_data['monitor_file_path'],
             collection_path=tracker_data['collection_path']
         )
 

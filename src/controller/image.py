@@ -1,6 +1,6 @@
 import logging
-import ee
 import traceback
+import ee
 from ..communicator.drive_manager import DriveManager
 
 logger = logging.getLogger(__name__)
