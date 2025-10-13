@@ -1,29 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 import ee
 from ..communicator import CityAsset
 
 class Calculator(ABC):
-    def __init__(self, city_asset: CityAsset, year: int, month: int, quality_file_path: str):
+    def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str):
         self.city_asset = city_asset
-        self.year = year
-        self.month = month
-        self.month_length = self._get_month_length()
         self.quality_file_path = quality_file_path
-        self.image: Optional[ee.Image] = None
+        self.missing_file_path = missing_file_path
 
     @abstractmethod
-    def calculate(self):
+    def calculate(self, year: int, month: int) -> ee.ImageCollection:
         pass
 
-    def _get_month_length(self) -> int:
+    def get_month_length(self, year: int, month: int) -> int:
         """
         Get the month length
         """
         month_length = [31,28,31,30,31,30,31,31,30,31,30,31]
-        length = month_length[self.month-1]
-        if self.month != 2:
+        length = month_length[month-1]
+        if month != 2:
             return length
-        if (self.year % 4 == 0 and self.year % 100 != 0) or (self.year % 400 == 0):
+        if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
             return length+1
         return length

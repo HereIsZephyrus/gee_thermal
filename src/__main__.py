@@ -5,8 +5,10 @@ import logging
 import os
 import time
 from dotenv import load_dotenv
-from .controller import Parser, Controller
+from .controller import LstParser, Controller
 from .communicator import ProjectManager
+from .communicator.ee_manager import CityAsset
+from .calculator import LstCalculator
 
 logging.basicConfig(
     filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
@@ -23,10 +25,10 @@ def main():
     collection_path = os.getenv('IMAGE_COLLECTION_PATH')
     project_name = os.getenv('PROJECT_NAME')
     quality_file_path = os.getenv('QUALITY_FILE_PATH')
-    monitor_file_path = os.getenv('MONITOR_FILE_PATH')
+    tracker_folder_path = os.getenv('TRACKER_FOLDER_PATH')
     drive_folder_id = os.getenv('DRIVE_FOLDER_ID')
     cloud_folder_name = os.getenv('DRIVE_FOLDER_NAME')
-    year_range = (2015, 2025)
+    year_range = (2020, 2025)
     project_manager = ProjectManager(
         project_name=project_name,
         credentials_file_path=credentials_file_path,
@@ -34,22 +36,33 @@ def main():
         drive_folder_id=drive_folder_id,
         cloud_folder_name=cloud_folder_name,
         quality_file_path=quality_file_path,
-        monitor_file_path=monitor_file_path,
+        tracker_folder_path=tracker_folder_path,
     )
     if not project_manager.initialize():
         logger.error("Failed to initialize project manager")
         return
     controller = Controller(
         project_manager=project_manager,
-        year_range=year_range
+        year_range=year_range,
+        parser=LstParser(quality_file_path)
+    )
+    city_asset: CityAsset = project_manager.get_city_asset(city_name = "武汉市")
+    calculator = LstCalculator(
+        city_asset=city_asset,
+        quality_file_path=quality_file_path,
+        missing_file_path=controller.missing_file_path
     )
     try:
-        controller.create_image_series()
+        controller.create_image_series(calculator)
     except Exception as e:
         logger.error("Failed to create image series: %s", e)
         return
-    parser = Parser(quality_file_path, year_range=year_range)
-    parser.parse_record()
+
+    try:
+        controller.post_process()
+    except Exception as e:
+        logger.error("Failed to post process: %s", e)
+        return
 
 if __name__ == '__main__':
     main()
