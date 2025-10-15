@@ -1,4 +1,7 @@
-# import ee
+import ee
+import logging
+
+logger = logging.getLogger(__name__)
 
 def calc_cloud_cover(image, whole_geometry, mask_method):
     counting_image = image.clip(whole_geometry)
