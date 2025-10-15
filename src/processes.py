@@ -1,5 +1,5 @@
 import logging
-from .controller import Controller, LstParser
+from .controller import LstController, LstParser
 from .calculator import LstCalculator
 
 logger = logging.getLogger(__name__)
@@ -8,7 +8,7 @@ def process_lst(project_manager, city_asset, year_range):
     """
     Process the LST image series
     """
-    controller = Controller(
+    controller = LstController(
         project_manager=project_manager,
         year_range=year_range,
         parser=LstParser(project_manager.quality_file_path)
