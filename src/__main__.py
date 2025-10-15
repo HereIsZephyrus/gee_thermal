@@ -5,10 +5,10 @@ import logging
 import os
 import time
 from dotenv import load_dotenv
-from .controller import LstParser, Controller
+from .controller import construct_parser, Controller
 from .communicator import ProjectManager
 from .communicator.ee_manager import CityAsset
-from .calculator import LstCalculator
+from .calculator import construct_calculator
 
 logging.basicConfig(
     filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger('ee').setLevel(logging.WARNING)
 
 def main():
+    """
+    The main entry point for the workflow image
+    """
     load_dotenv()
     credentials_file_path = os.getenv('CREDENTIALS_FILE_PATH')
     collection_path = os.getenv('IMAGE_COLLECTION_PATH')
@@ -28,6 +31,7 @@ def main():
     tracker_folder_path = os.getenv('TRACKER_FOLDER_PATH')
     drive_folder_id = os.getenv('DRIVE_FOLDER_ID')
     cloud_folder_name = os.getenv('DRIVE_FOLDER_NAME')
+    calculator_type = os.getenv('CALCULATOR_TYPE')
     year_range = (2020, 2025)
     project_manager = ProjectManager(
         project_name=project_name,
@@ -44,10 +48,11 @@ def main():
     controller = Controller(
         project_manager=project_manager,
         year_range=year_range,
-        parser=LstParser(quality_file_path)
+        parser=construct_parser(parser_type=calculator_type, quality_file_path=quality_file_path)
     )
     city_asset: CityAsset = project_manager.get_city_asset(city_name = "武汉市")
-    calculator = LstCalculator(
+    calculator = construct_calculator(
+        calculator_type=calculator_type,
         city_asset=city_asset,
         quality_file_path=quality_file_path,
         missing_file_path=controller.missing_file_path

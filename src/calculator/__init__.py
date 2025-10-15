@@ -1,4 +1,4 @@
 from .calculator import Calculator
-from .lst_calculator import LstCalculator
+from .calculator_factory import construct_calculator
 
-__all__ = ['Calculator', 'LstCalculator']
+__all__ = ['Calculator', 'construct_calculator']

@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 import ee
-from ..communicator import CityAsset
 
 class Calculator(ABC):
-    def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str):
+    def __init__(self, city_asset, quality_file_path: str, missing_file_path: str):
         self.city_asset = city_asset
         self.quality_file_path = quality_file_path
         self.missing_file_path = missing_file_path

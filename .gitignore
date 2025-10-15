@@ -87,6 +87,9 @@ ipython_config.py   # IPython
 # Environment management
 settings.yaml
 .env
+.env.lst
+.env.era5
+.env.thermal
 .venv
 env/
 venv/
