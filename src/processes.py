@@ -1,6 +1,6 @@
 import logging
-from .controller import LstController, LstParser
-from .calculator import LstCalculator
+from .controller import LstController, LstParser, Era5Controller
+from .calculator import LstCalculator, Era5Calculator
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,27 @@ def process_lst(project_manager, city_asset, year_range):
         logger.error("Failed to post process: %s", e)
         return
 
-def process_era5(project_manager, city_asset, year_range):
+def process_era5(project_manager, city_asset, check_days_file_path):
     """
     Process the ERA5 image series
     """
-    pass
+    controller = Era5Controller(
+        project_manager=project_manager,
+        check_days_file_path=check_days_file_path
+    )
+    calculator = Era5Calculator(
+        city_asset=city_asset,
+        quality_file_path=project_manager.quality_file_path,
+        missing_file_path=controller.missing_file_path
+    )
+    try:
+        controller.create_image_series(calculator)
+    except Exception as e:
+        logger.error("Failed to create image series: %s", e)
+        return
+
+    try:
+        controller.post_process()
+    except Exception as e:
+        logger.error("Failed to post process: %s", e)
+        return

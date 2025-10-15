@@ -10,8 +10,9 @@ from .communicator import ProjectManager
 from .communicator.ee_manager import CityAsset
 from .processes import process_lst, process_era5
 
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
-    filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
+    filename=f'logs/image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
     filemode='w',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'

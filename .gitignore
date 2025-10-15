@@ -8,6 +8,7 @@ filter.csv
 *.csv
 *.html
 *.log
+logs/
 
 # System and temporary files
 .fuse*

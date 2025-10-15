@@ -3,6 +3,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 import pickle
+from .counter import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,11 @@ class HoldState(TaskState):
     """
     max_task_num = 5
     def handle(self, tracker):
-        # Count the number of .pkl files in tracker folder
-        tracker_folder = os.path.dirname(tracker.tracker_file_path)
-        pkl_files = [f for f in os.listdir(tracker_folder) if f.endswith('.pkl')]
-        if len(pkl_files) >= self.max_task_num:
+        if self.max_task_num <= Counter().get_count():
             return HoldState()
         tracker.task = tracker.image.create_export_task()
         logger.info("ready to export : %s", tracker.task)
+        Counter().increment()
         return ExportState()
 
 class ExportState(TaskState):
@@ -97,6 +96,7 @@ class CompeletedState(TaskState):
         file_obj = tracker.get_fileobj(cloud_file_name)
         file_obj.Delete()
         logger.info("Delete cloud file: %s", cloud_file_name)
+        Counter().decrement()
         return None
 
 class TaskTracker:

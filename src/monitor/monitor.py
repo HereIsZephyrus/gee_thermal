@@ -74,7 +74,7 @@ class Monitor:
 
     def create_new_session(self, year: int, month: int, exclude_list: list) -> bool:
         """
-        Check if the year-month pair is not recorded in the tracker folder or already completed
+        Check if the year-month pair is not recorded in the tracker folder or already completed(for lst)
         """
         session_key = f"{year}-{month:02}"
         if session_key in exclude_list:
