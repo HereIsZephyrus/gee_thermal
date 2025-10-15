@@ -10,34 +10,7 @@ class LstController(Controller):
     def __init__(self, project_manager, year_range: tuple, parser):
         super().__init__(project_manager)
         self.year_range = year_range
-        self.missing_file_path = os.path.join(project_manager.collection_path, "missing.txt")
-        self.exclude_list = self._create_exclude_list(project_manager.collection_path)
         self.parser = parser
-
-    def _create_exclude_list(self, collection_path: str):
-        """
-        Create the exclude list
-        """
-        # find all the files in the collection_path, record year-month pair
-        exclude_list = []
-        os.makedirs(collection_path, exist_ok=True)
-        if os.path.exists(self.missing_file_path):
-            with open(self.missing_file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                for line in lines:
-                    year, month = line.strip().split('-')
-                    exclude_list.append(f"{int(year)}-{int(month):02}")
-        else:
-            with open(self.missing_file_path, 'w', encoding='utf-8') as f:
-                pass
-
-        for file in os.listdir(collection_path):
-            if file.endswith('.tif'):
-                elements = file.split('.')[0].split('-')
-                year = int(elements[1])
-                month = int(elements[2])
-                exclude_list.append(f"{year}-{month:02}")
-        return exclude_list
 
     def create_image_series(self, calculator):
         """

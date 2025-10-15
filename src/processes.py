@@ -41,7 +41,8 @@ def process_era5(project_manager, city_asset, check_days_file_path):
     calculator = Era5Calculator(
         city_asset=city_asset,
         quality_file_path=project_manager.quality_file_path,
-        missing_file_path=controller.missing_file_path
+        missing_file_path=controller.missing_file_path,
+        check_days_file_path=check_days_file_path
     )
     try:
         controller.create_image_series(calculator)
