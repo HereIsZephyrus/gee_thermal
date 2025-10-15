@@ -1,30 +1,30 @@
-def add_ndvi_band(landsat, image):
+def add_ndbi_band(landsat, image):
     """
-    Compute NDVI values for a given Landsat image.
+    Compute NDBI values for a given Landsat image.
 
     Parameters:
     - landsat (str): ID of the Landsat satellite (e.g., 'L8')
     - image (ee.Image): Input Landsat image
 
     Returns:
-    - ee.Image: Image with added NDVI band
+    - ee.Image: Image with added NDBI band
     """
 
     # Choose bands based on the Landsat satellite ID
     if landsat in ["L8", "L9"]:
         nir = "SR_B5"
-        red = "SR_B4"
+        mir = "SR_B6"
     else:
         nir = "SR_B4"
-        red = "SR_B3"
+        mir = "SR_B5"
 
-    # Compute NDVI
-    ndvi = image.expression(
-        "(nir - red) / (nir + red)",
+    # Compute NDBI
+    ndbi = image.expression(
+        "(mir - nir) / (mir + nir)",
         {
             "nir": image.select(nir).multiply(0.0000275).add(-0.2),
-            "red": image.select(red).multiply(0.0000275).add(-0.2),
+            "mir": image.select(mir).multiply(0.0000275).add(-0.2),
         },
-    ).rename("NDVI")
+    ).rename("NDBI")
 
-    return image.addBands(ndvi)
+    return image.addBands(ndbi)

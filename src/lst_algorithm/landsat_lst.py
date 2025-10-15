@@ -2,11 +2,15 @@ import ee
 import os
 import logging
 from .ncep_tpw import add_tpw_band
-from .cloudmask import mask_sr, mask_toa
+from .cloudmask import mask_sr, mask_toa, calc_cloud_cover
+from .compute_metadata import add_index_func, add_timestamp
 from .compute_ndvi import add_ndvi_band
 from .compute_fvc import add_fvc_band
 from .compute_emissivity import add_emissivity_band
 from .smw_algorithm import add_lst_band
+from .compute_ndbi import add_ndbi_band
+from .compute_evi import add_evi_band
+from .compute_green import add_green_band
 from .constants import LANDSAT_BANDS
 
 logger = logging.getLogger(__name__)
@@ -14,61 +18,6 @@ logging.getLogger('ee').setLevel(logging.WARNING)
 
 # Set the path to the service account key file
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../.gee-sa-priv-key.json"
-
-
-def initialize_ee():
-    if not ee.data._initialized:
-        try:
-            ee.Initialize()
-        except Exception:
-            logger.error("Please authenticate Google Earth Engine first.")
-            ee.Authenticate()
-            ee.Initialize()
-
-
-def add_timestamp(image):
-    timestamp = image.getNumber('system:time_start').toFloat()
-    return image.addBands(ee.Image.constant(timestamp).rename('TIMESTAMP'))
-    # # Convert the system:time_start property to a human-readable string
-    # timestamp_string = ee.Date(image.get("system:time_start")).format(
-    #     "YYYY-MM-DD HH:mm:ss"
-    # )
-    # # Set the timestamp string as a new property on the image
-    # return image.set("timestamp", timestamp_string)
-
-
-def add_raw_timestamp(image):
-    return image.set("raw_timestamp", image.get("system:time_start"))
-
-def calc_cloud_cover(image, whole_geometry, mask_method):
-    counting_image = image.clip(whole_geometry)
-    first_band_name = counting_image.bandNames().get(0)
-    total_counting_pixel = counting_image.reduceRegion(
-        reducer = ee.Reducer.count(),
-        geometry = whole_geometry,
-        scale = 30,
-        maxPixels = 1e13
-    ).get(first_band_name).getInfo()
-    if (total_counting_pixel == 0):
-        raise ValueError("the image is not cover the urban area")
-    # the invalid value pixels are cloud coverd pixels
-    cloud_cover_pixel = mask_method(counting_image).reduceRegion(
-        reducer = ee.Reducer.count(),
-        geometry = whole_geometry,
-        scale = 30,
-        maxPixels = 1e13
-    ).get(first_band_name).getInfo()
-    result = (1 - float(cloud_cover_pixel / total_counting_pixel)) * 100
-    logger.debug(f"cloud cover ratio is 1 - {cloud_cover_pixel}/{total_counting_pixel} = {result}%")
-    return result
-
-def add_index_func(date_start):
-    def add_index(image):
-        image_date = image.date()
-        image_ind = image_date.difference(date_start, 'day').toInt()
-        image = image.set('INDEX', image_ind)
-        return image
-    return add_index
 
 def minimum_cloud_cover(image_collection, geometry, cloud_cover_geometry, mask_method, date_start):
     """
@@ -94,14 +43,14 @@ def minimum_cloud_cover(image_collection, geometry, cloud_cover_geometry, mask_m
         intersect = raw_geometry.intersection(geometry)
         image_area = intersect.area().getInfo()
         porpotion = image_area / total_area
-        logger.debug(f'index {index} has {image_num} images, the proportion is {image_area} / {total_area} = {porpotion}')
+        logger.debug('index %s has %s images, the proportion is %s / %s = %s', index, image_num, image_area, total_area, porpotion)
         if (porpotion < 0.8):
             continue
         mosaiced_image = image_condidate_list.mosaic().clip(geometry)
         try:
             couning_area_cloud_cover = calc_cloud_cover(mosaiced_image, cloud_cover_geometry, mask_method)
         except ValueError as e:
-            logger.warning(f"{e}")
+            logger.warning("%s", e)
             continue
         if couning_area_cloud_cover < best_cloud_cover:
             best_cloud_cover = couning_area_cloud_cover
@@ -159,50 +108,67 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
     try:
         best_landsat_toa, toa_porpotion, toa_cloud_cover, toa_date = minimum_cloud_cover(landsat_toa, geometry, cloud_cover_geometry, mask_toa, date_start)
     except ValueError as ve:
-        e = ValueError(f"TOA: {ve}")
-        raise e
+        raise ValueError(f"TOA: {ve}") from ve
     except Exception as e:
-        logger.error(f"Error finding toa minimum cloud cover: {e}")
+        logger.error("Error finding toa minimum cloud cover: %s", e)
         raise e
 
     # Load Surface Reflectance collection for NDVI  and apply transformations
     try:
         best_landsat_sr, sr_porpotion, sr_cloud_cover, sr_date = minimum_cloud_cover(landsat_sr, geometry, cloud_cover_geometry, mask_sr, date_start)
     except ValueError as ve:
-        e = ValueError(f"SR: {ve}")
-        raise e
+        raise ValueError(f"SR: {ve}") from ve
     except Exception as e:
-        logger.error(f"Error finding sr minimum cloud cover: {e}")
+        logger.error("Error finding sr minimum cloud cover: %s", e)
         raise e
 
     if toa_date != sr_date:
-        logger.warning(f"TOA and SR timestamps do not match. TOA: {toa_date}, SR: {sr_date}")
+        logger.warning("TOA and SR timestamps do not match. TOA: %s, SR: %s", toa_date, sr_date)
 
     try:
         best_landsat_sr = add_ndvi_band(landsat, best_landsat_sr)
         best_landsat_sr = add_fvc_band(landsat, best_landsat_sr)
     except Exception as e:  
-        logger.error(f"Error adding NDVI, FVC bands: {e}")
+        logger.error("Error adding NDVI, FVC bands: %s", e)
         raise e
+
+    try:
+        best_landsat_sr = add_ndbi_band(landsat, best_landsat_sr)
+    except Exception as e:
+        logger.error("Error adding NDBI band: %s", e)
+        raise e
+
+    try:
+        best_landsat_sr = add_evi_band(landsat, best_landsat_sr)
+    except Exception as e:
+        logger.error("Error adding EVI band: %s", e)
+        raise e
+
+    try:
+        best_landsat_sr = add_green_band(landsat, best_landsat_sr)
+    except Exception as e:
+        logger.error("Error adding Green band: %s", e)
+        raise e
+
     try:
         best_landsat_sr = add_tpw_band(best_landsat_sr)
     except Exception as e:
-        logger.error(f"Error adding TPW band: {e}")
+        logger.error("Error adding TPW band: %s", e)
         raise e
 
     try:
         best_landsat_sr = add_emissivity_band(landsat, use_ndvi, best_landsat_sr)
     except Exception as e:
-        logger.error(f"Error adding emissivity band: {e}")
+        logger.error("Error adding emissivity band: %s", e)
         raise e
 
     # Combine collections
     tir = collection_dict["TIR"]
-    visw = collection_dict["VISW"] + ["NDVI", "FVC", "EM", "TPW", "TPWpos"]
+    visw = collection_dict["VISW"] + ["NDVI", "FVC", "NDBI", "EVI", "Green", "EM", "TPW", "TPWpos"]
     try:
         best_landsat = best_landsat_sr.select(visw).addBands(best_landsat_toa.select(tir))
     except Exception as e:
-        logger.error(f"Error adding bands: {e}")
+        logger.error("Error adding bands: %s", e)
         raise e
 
     # Compute the LST
@@ -210,7 +176,7 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
     try:
         best_landsat_lst = add_lst_band(landsat, best_landsat)
     except Exception as e:
-        logger.error(f"Error adding LST band: {e}")
+        logger.error("Error adding LST band: %s", e)
         raise e
     # best_landsat_lst = add_timestamp(best_landsat_lst)
     if best_landsat_lst is None:
@@ -237,8 +203,6 @@ def fetch_landsat_collection(landsat, date_start, date_end, geometry, cloud_thes
     Returns:
     - landsatLST: Processed Landsat collection with LST
     """
-    # Ensure Earth Engine is initialized
-    initialize_ee()
     # Check if the provided Landsat collection is valid
     if landsat not in LANDSAT_BANDS.keys():
         raise ValueError(
@@ -268,6 +232,9 @@ def fetch_landsat_collection(landsat, date_start, date_end, geometry, cloud_thes
         .map(mask_sr)
         .map(lambda image: add_ndvi_band(landsat, image))
         .map(lambda image: add_fvc_band(landsat, image))
+        .map(lambda image: add_ndbi_band(landsat, image))
+        .map(lambda image: add_evi_band(landsat, image))
+        .map(lambda image: add_green_band(landsat, image))
         .map(add_tpw_band)
         .map(lambda image: add_emissivity_band(landsat, use_ndvi, image))
     )
@@ -277,13 +244,12 @@ def fetch_landsat_collection(landsat, date_start, date_end, geometry, cloud_thes
 
     # Combine collections
     tir = collection_dict["TIR"]
-    visw = collection_dict["VISW"] + ["NDVI", "FVC", "TPW", "TPWpos", "EM"]
+    visw = collection_dict["VISW"] + ["NDVI", "FVC", "NDBI", "EVI", "Green", "TPW", "TPWpos", "EM"]
     landsat_all = landsat_sr.select(visw).combine(landsat_toa.select(tir), True)
 
     # Compute the LST
     landsat_lst = landsat_all.map(lambda image: add_lst_band(landsat, image))
 
     # Add timestamp to each image in the collection
-    landsat_lst = landsat_lst.map(add_timestamp) #.map(add_raw_timestamp)
-
+    landsat_lst = landsat_lst.map(add_timestamp)
     return landsat_lst
