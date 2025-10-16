@@ -44,7 +44,7 @@ def fetch_moodis_image(date: ee.Date, geometry: ee.Geometry) -> ee.Image:
         lst_night_scaled = daily_image.select('LST_Night_1km').toFloat().multiply(0.02)
         qc_day = daily_image.select('QC_Day')
         qc_night = daily_image.select('QC_Night')
-        
+
         # Cast all bands to the same data type (float) to avoid export errors
         result_image = ee.Image.cat([
             lst_day_scaled.cast({'LST_Day_1km': 'float'}),
