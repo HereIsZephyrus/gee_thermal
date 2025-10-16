@@ -25,7 +25,7 @@ def export_image(
         with open(missing_file_path, 'a', encoding='utf-8') as f:
             f.write(f"{year}-{month:02}\n")
         return False
-    image = Image(drive_manager, cloud_path, image_name, city_asset.city_geometry)
+    image = Image(drive_manager, cloud_path, image_name, city_asset.city_geometry, calculator.pixel_resolution)
     image.add_band(bands)
     try:
         monitor.export(image)

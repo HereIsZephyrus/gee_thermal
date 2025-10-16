@@ -1,16 +1,14 @@
 # Project specific files
 client_secrets.json
 credentials.json
-process_monitor.txt
-convert_js_to_python.py
-lst.ipynb
-series/
+filter.csv
 .vscode/
 # Data and output files
 *.xlsx
 *.csv
 *.html
 *.log
+logs/
 
 # System and temporary files
 .fuse*
@@ -87,6 +85,7 @@ ipython_config.py   # IPython
 # Environment management
 settings.yaml
 .env
+.env.local.*
 .venv
 env/
 venv/

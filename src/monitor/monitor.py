@@ -74,7 +74,7 @@ class Monitor:
 
     def create_new_session(self, year: int, month: int, exclude_list: list) -> bool:
         """
-        Check if the year-month pair is not recorded in the tracker folder or already completed
+        Check if the year-month pair is not recorded in the tracker folder or already completed(for lst)
         """
         session_key = f"{year}-{month:02}"
         if session_key in exclude_list:
@@ -164,7 +164,7 @@ class Monitor:
                     if attempt == max_retries - 1:
                         logger.error("Failed to refresh token after %d attempts", max_retries)
                         return
-                    time.sleep(2 ** attempt)  # Exponential backoff
+                    time.sleep(3 ** attempt)  # Exponential backoff
                 except (ValueError, RuntimeError) as e:
                     logger.error("Unexpected error during token refresh: %s", e)
                     return

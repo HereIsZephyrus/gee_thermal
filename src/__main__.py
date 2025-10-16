@@ -4,14 +4,15 @@ The main entry point for the workflow image
 import logging
 import os
 import time
+import sys
 from dotenv import load_dotenv
-from .controller import LstParser, Controller
 from .communicator import ProjectManager
 from .communicator.ee_manager import CityAsset
-from .calculator import LstCalculator
+from .processes import process_lst, process_era5, process_thermal
 
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
-    filename=f'image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
+    filename=f'logs/image_generator_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.log',
     filemode='w',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -19,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logging.getLogger('ee').setLevel(logging.WARNING)
 
-def main():
+def main(args):
     load_dotenv()
     credentials_file_path = os.getenv('CREDENTIALS_FILE_PATH')
     collection_path = os.getenv('IMAGE_COLLECTION_PATH')
@@ -28,7 +29,7 @@ def main():
     tracker_folder_path = os.getenv('TRACKER_FOLDER_PATH')
     drive_folder_id = os.getenv('DRIVE_FOLDER_ID')
     cloud_folder_name = os.getenv('DRIVE_FOLDER_NAME')
-    year_range = (2020, 2025)
+    calculator_type = args[0]
     project_manager = ProjectManager(
         project_name=project_name,
         credentials_file_path=credentials_file_path,
@@ -41,28 +42,31 @@ def main():
     if not project_manager.initialize():
         logger.error("Failed to initialize project manager")
         return
-    controller = Controller(
-        project_manager=project_manager,
-        year_range=year_range,
-        parser=LstParser(quality_file_path)
-    )
     city_asset: CityAsset = project_manager.get_city_asset(city_name = "武汉市")
-    calculator = LstCalculator(
-        city_asset=city_asset,
-        quality_file_path=quality_file_path,
-        missing_file_path=controller.missing_file_path
-    )
-    try:
-        controller.create_image_series(calculator)
-    except Exception as e:
-        logger.error("Failed to create image series: %s", e)
-        return
-
-    try:
-        controller.post_process()
-    except Exception as e:
-        logger.error("Failed to post process: %s", e)
-        return
+    if calculator_type == "lst":
+        if len(args) != 3:
+            logger.error("Usage: python -m src lst <start_year> <end_year>")
+            sys.exit(1)
+        year_range = (int(args[1]), int(args[2]))
+        process_lst(project_manager, city_asset, year_range)
+    elif calculator_type == "era5":
+        if len(args) != 2:
+            logger.error("Usage: python -m src era5 <check_days_file_path>")
+            sys.exit(1)
+        check_days_file_path = args[1]
+        process_era5(project_manager, city_asset, check_days_file_path)
+    elif calculator_type == "thermal":
+        if len(args) != 2:
+            logger.error("Usage: python -m src thermal <check_days_file_path>")
+            sys.exit(1)
+        check_days_file_path = args[1]
+        process_thermal(project_manager, city_asset, check_days_file_path)
+    else:
+        logger.error("Invalid calculator type: %s", calculator_type)
+        sys.exit(1)
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) < 2:
+        logger.error("Usage: python -m src <calculator_type> <args>")
+        sys.exit(1)
+    main(sys.argv[1:])

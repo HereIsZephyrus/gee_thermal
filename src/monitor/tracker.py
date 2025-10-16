@@ -3,6 +3,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 import pickle
+from .counter import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,11 @@ class HoldState(TaskState):
     """
     max_task_num = 5
     def handle(self, tracker):
-        # Count the number of .pkl files in tracker folder
-        tracker_folder = os.path.dirname(tracker.tracker_file_path)
-        pkl_files = [f for f in os.listdir(tracker_folder) if f.endswith('.pkl')]
-        if len(pkl_files) >= self.max_task_num:
+        if self.max_task_num <= Counter().get_count():
             return HoldState()
         tracker.task = tracker.image.create_export_task()
         logger.info("ready to export : %s", tracker.task)
+        Counter().increment()
         return ExportState()
 
 class ExportState(TaskState):
@@ -83,7 +82,7 @@ class DownloadState(TaskState):
                     if attempt == max_retries - 1:
                         logger.error("Failed to download %s after %d attempts", cloud_file_name, max_retries)
                         return CompeletedState()  # Still return CompletedState to avoid infinite retry
-                    time.sleep(2 ** attempt)  # Exponential backoff
+                    time.sleep(3 ** attempt)  # Exponential backoff
                 else:
                     logger.error("Unexpected error during download: %s", error_msg)
                     return CompeletedState()
@@ -95,8 +94,18 @@ class CompeletedState(TaskState):
     def handle(self, tracker):
         cloud_file_name = tracker.image.image_name
         file_obj = tracker.get_fileobj(cloud_file_name)
-        file_obj.Delete()
-        logger.info("Delete cloud file: %s", cloud_file_name)
+        for i in range(3):
+            if file_obj is not None:
+                logger.info("Get file object after %d attempts", i + 1)
+                break
+            time.sleep(2)
+            file_obj = tracker.get_fileobj(cloud_file_name)
+        if file_obj is None:
+            logger.warning("Failed to get file object after 3 attempts, skip delete")
+        else:
+            file_obj.Delete()
+            logger.info("Delete cloud file: %s", cloud_file_name)
+        Counter().decrement()
         return None
 
 class TaskTracker:
