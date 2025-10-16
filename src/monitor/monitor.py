@@ -164,7 +164,7 @@ class Monitor:
                     if attempt == max_retries - 1:
                         logger.error("Failed to refresh token after %d attempts", max_retries)
                         return
-                    time.sleep(2 ** attempt)  # Exponential backoff
+                    time.sleep(3 ** attempt)  # Exponential backoff
                 except (ValueError, RuntimeError) as e:
                     logger.error("Unexpected error during token refresh: %s", e)
                     return

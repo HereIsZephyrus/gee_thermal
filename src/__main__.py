@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 from .communicator import ProjectManager
 from .communicator.ee_manager import CityAsset
-from .processes import process_lst, process_era5
+from .processes import process_lst, process_era5, process_thermal
 
 os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
@@ -55,6 +55,12 @@ def main(args):
             sys.exit(1)
         check_days_file_path = args[1]
         process_era5(project_manager, city_asset, check_days_file_path)
+    elif calculator_type == "thermal":
+        if len(args) != 2:
+            logger.error("Usage: python -m src thermal <check_days_file_path>")
+            sys.exit(1)
+        check_days_file_path = args[1]
+        process_thermal(project_manager, city_asset, check_days_file_path)
     else:
         logger.error("Invalid calculator type: %s", calculator_type)
         sys.exit(1)

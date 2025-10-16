@@ -6,7 +6,7 @@ from .export import export_image
 
 logger = logging.getLogger(__name__)
 
-class Era5Controller(Controller):
+class ModisController(Controller):
     def __init__(self, project_manager, check_days_file_path):
         super().__init__(project_manager)
         self.check_days_file_path = check_days_file_path
@@ -19,7 +19,7 @@ class Era5Controller(Controller):
             city_asset=calculator.city_asset,
             cloud_path=self.project_manager.cloud_folder_name,
             monitor=self.monitor,
-            missing_file_path=self.missing_file_path,
+            missing_file_path="self.missing_file_path",
             calculator=calculator
         )
         with open(self.check_days_file_path, 'r', encoding='utf-8') as f:

@@ -3,11 +3,14 @@ import traceback
 import logging
 import ee
 from .calculator import Calculator
+from ..communicator.ee_manager import CityAsset
 from ..lst_algorithm import fetch_best_landsat_image
 
 logger = logging.getLogger(__name__)
 
 class LstCalculator(Calculator):
+    def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str):
+        super().__init__(city_asset, quality_file_path, missing_file_path, 30)
 
     def calculate(self, year: int, month: int) -> ee.ImageCollection:
         """ 
