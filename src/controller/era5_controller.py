@@ -8,6 +8,11 @@ from osgeo import gdal, ogr, osr
 from .controller import Controller
 from .export import export_image
 
+# Configure GDAL to use exceptions for better error handling
+gdal.UseExceptions()
+ogr.UseExceptions()
+osr.UseExceptions()
+
 logger = logging.getLogger(__name__)
 
 class Era5Controller(Controller):
@@ -210,7 +215,7 @@ class Era5Controller(Controller):
             srs = osr.SpatialReference()
             srs.ImportFromWkt(projection)
 
-            # Create layer with point geometry
+            # Create layer with 2D point geometry
             layer = data_source.CreateLayer('wind_vectors', srs, ogr.wkbPoint)
 
             # Create attribute fields
@@ -243,9 +248,9 @@ class Era5Controller(Controller):
                     # Create point feature using OGR
                     feature = ogr.Feature(layer.GetLayerDefn())
 
-                    # Set point geometry
+                    # Set 2D point geometry (explicitly specify only x, y coordinates)
                     point = ogr.Geometry(ogr.wkbPoint)
-                    point.AddPoint(x, y)
+                    point.AddPoint_2D(x, y)  # Use AddPoint_2D to ensure 2D geometry
                     feature.SetGeometry(point)
 
                     # Set attribute values
