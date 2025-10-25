@@ -29,8 +29,8 @@ class LstCalculator(Calculator):
         use_ndvi = True
         cloud_threshold = 25
         quality_file_path = self.quality_file_path
-
         landsat_coll = None
+        latitude = self.city_asset.latitude
         for satellite in satellite_list:
             try:
                 landsat_coll, toa_porpotion, sr_porpotion, toa_cloud, sr_cloud , day = fetch_best_landsat_image(
@@ -40,7 +40,9 @@ class LstCalculator(Calculator):
                     geometry=self.city_asset.city_geometry,
                     cloud_theshold=cloud_threshold,
                     cloud_cover_geometry=self.city_asset.urban_geometry,
-                    use_ndvi=use_ndvi)
+                    use_ndvi=use_ndvi,
+                    month=month,
+                    latitude=latitude)
                 with open(quality_file_path, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerow([self.city_asset.name, year, month, toa_porpotion, sr_porpotion, toa_cloud, sr_cloud, day])
