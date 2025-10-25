@@ -1,4 +1,5 @@
 import csv
+from typing import Optional
 import traceback
 import logging
 import ee
@@ -9,8 +10,14 @@ from ..lst_algorithm import fetch_best_landsat_image
 logger = logging.getLogger(__name__)
 
 class LstCalculator(Calculator):
-    def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str):
-        super().__init__(city_asset, quality_file_path, missing_file_path, 30)
+    def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str, check_days_file_path: Optional[str] = None):
+        super().__init__(
+            city_asset=city_asset,
+            quality_file_path=quality_file_path,
+            missing_file_path=missing_file_path,
+            pixel_resolution=30,
+            check_days_file_path=check_days_file_path
+        )
 
     def calculate(self, year: int, month: int) -> ee.ImageCollection:
         """ 

@@ -1,4 +1,3 @@
-import csv
 import traceback
 import logging
 import ee
@@ -10,22 +9,7 @@ logger = logging.getLogger(__name__)
 
 class Era5Calculator(Calculator):
     def __init__(self, city_asset: CityAsset, quality_file_path: str, missing_file_path: str, check_days_file_path: str):
-        super().__init__(city_asset, quality_file_path, missing_file_path, 11132)
-        self.map_days = self._create_map_days(check_days_file_path)
-
-    def _create_map_days(self, check_days_file_path: str) -> dict:
-        """
-        Create the map days
-        """
-        map_days = {}
-        with open(check_days_file_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            # exclude the first row
-            next(reader)
-            for row in reader:
-                year, month, day = row
-                map_days[f"{int(year)}-{int(month):02}"] = int(day)
-        return map_days
+        super().__init__(city_asset, quality_file_path, missing_file_path, 11132, check_days_file_path)
 
     def calculate(self, year: int, month: int) -> ee.ImageCollection:
         """ 
