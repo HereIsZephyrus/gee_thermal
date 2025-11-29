@@ -17,6 +17,7 @@ class CityAsset:
         self.city_geometry = ee.Geometry(asset.getInfo()['features'][0]['geometry'])
         urban_boundary = ee.FeatureCollection(f'{assets_path}/urban_{self.code}')
         self.urban_geometry = self._filter_city_bound(urban_boundary.geometry())
+        self._latitude = None
 
     def _filter_city_bound(self, city_geometry: ee.Geometry):
         """
@@ -36,6 +37,16 @@ class CityAsset:
                 largest = ee.Geometry(polygon)
         logger.debug("max area is %s", max_area)
         return largest
+
+    @property
+    def latitude(self) -> float:
+        """
+        Get the latitude of the city
+        """
+        if self._latitude is None:
+            self._latitude = self.city_geometry.centroid().coordinates().get(1).getInfo()
+            logger.info("calculated latitude: %s", self._latitude)
+        return self._latitude
 
 class EEManager:
     """

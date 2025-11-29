@@ -3,11 +3,13 @@ import os
 import logging
 from .ncep_tpw import add_tpw_band
 from .cloudmask import mask_sr, mask_toa, calc_cloud_cover
-from .compute_metadata import add_index_func, add_timestamp
+from .compute_metadata import add_index_func
 from .compute_ndvi import add_ndvi_band
 from .compute_fvc import add_fvc_band
 from .compute_emissivity import add_emissivity_band
+from .compute_elevation import add_elevation_band
 from .smw_algorithm import add_lst_band
+from .scen_algorithm import add_airt_band
 from .compute_ndbi import add_ndbi_band
 from .compute_evi import add_evi_band
 from .compute_green import add_green_band
@@ -61,7 +63,12 @@ def minimum_cloud_cover(image_collection, geometry, cloud_cover_geometry, mask_m
         raise ValueError("No image found for the specified date range.")
     return best_image, porpotion, best_cloud_cover, index + 1
 
-def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold,cloud_cover_geometry,use_ndvi = False):
+def fetch_best_landsat_image(
+    landsat,date_start,date_end,geometry,cloud_theshold,cloud_cover_geometry,
+    use_ndvi = True,
+    month = None,
+    latitude = None,
+):
     """
     Fetches the best Landsat image(mimum cloud cover in cloud_cover_geometry)
 
@@ -162,9 +169,15 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
         logger.error("Error adding emissivity band: %s", e)
         raise e
 
+    try:
+        best_landsat_sr = add_elevation_band(best_landsat_sr)
+    except Exception as e:
+        logger.error("Error adding elevation band: %s", e)
+        raise e
+
     # Combine collections
     tir = collection_dict["TIR"]
-    visw = collection_dict["VISW"] + ["NDVI", "FVC", "NDBI", "EVI", "Green", "EM", "TPW", "TPWpos"]
+    visw = collection_dict["VISW"] + ["NDVI", "FVC", "NDBI", "EVI", "Green", "EM", "TPW", "TPWpos", "ELEVATION"]
     try:
         best_landsat = best_landsat_sr.select(visw).addBands(best_landsat_toa.select(tir))
     except Exception as e:
@@ -175,6 +188,7 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
     #landsat_lst = landsat_all.map(lambda image: add_lst_band(landsat, image))
     try:
         best_landsat_lst = add_lst_band(landsat, best_landsat)
+        best_landsat_lst = add_airt_band(landsat, best_landsat, month, latitude)
     except Exception as e:
         logger.error("Error adding LST band: %s", e)
         raise e
@@ -186,70 +200,3 @@ def fetch_best_landsat_image(landsat,date_start,date_end,geometry,cloud_theshold
     # align all bands to the same value type
     best_landsat_lst = best_landsat_lst.select(best_landsat_lst.bandNames()).toFloat()
     return best_landsat_lst, toa_porpotion, sr_porpotion, toa_cloud_cover, sr_cloud_cover, toa_date
-
-def fetch_landsat_collection(landsat, date_start, date_end, geometry, cloud_theshold, use_ndvi = False):
-    """
-    Fetches a Landsat collection based on the provided parameters
-    and applies several transformations.
-
-    Parameters:
-    - landsat: Name of the Landsat collection (e.g., 'L8')
-    - date_start: Start date for the collection
-    - date_end: End date for the collection
-    - geometry: Area of interest
-    - cloud_theshold: Cloud cover threshold
-    - use_ndvi: Boolean indicating whether to use NDVI
-
-    Returns:
-    - landsatLST: Processed Landsat collection with LST
-    """
-    # Check if the provided Landsat collection is valid
-    if landsat not in LANDSAT_BANDS.keys():
-        raise ValueError(
-            f"Invalid Landsat constellation: {landsat}. \
-            Valid options are: {list(LANDSAT_BANDS.keys())}"
-        )
-
-    collection_dict = LANDSAT_BANDS[landsat]
-
-    # Load TOA Radiance/Reflectance
-    landsat_toa = (
-        ee.ImageCollection(collection_dict["TOA"])
-        .filterDate(date_start, date_end)
-        .filterBounds(geometry)
-        .filter(ee.Filter.lessThan('CLOUD_COVER', cloud_theshold))
-    )
-
-    if landsat_toa is None:
-        raise ValueError("No toa images found for the specified date range.")
-
-    # Load Surface Reflectance collection for NDVI  and apply transformations
-    landsat_sr = (
-        ee.ImageCollection(collection_dict["SR"])
-        .filterDate(date_start, date_end)
-        .filterBounds(geometry)
-        .filter(ee.Filter.lessThan('CLOUD_COVER', cloud_theshold))
-        .map(mask_sr)
-        .map(lambda image: add_ndvi_band(landsat, image))
-        .map(lambda image: add_fvc_band(landsat, image))
-        .map(lambda image: add_ndbi_band(landsat, image))
-        .map(lambda image: add_evi_band(landsat, image))
-        .map(lambda image: add_green_band(landsat, image))
-        .map(add_tpw_band)
-        .map(lambda image: add_emissivity_band(landsat, use_ndvi, image))
-    )
-
-    if landsat_sr is None:
-        raise ValueError("No sr images found for the specified date range.")
-
-    # Combine collections
-    tir = collection_dict["TIR"]
-    visw = collection_dict["VISW"] + ["NDVI", "FVC", "NDBI", "EVI", "Green", "TPW", "TPWpos", "EM"]
-    landsat_all = landsat_sr.select(visw).combine(landsat_toa.select(tir), True)
-
-    # Compute the LST
-    landsat_lst = landsat_all.map(lambda image: add_lst_band(landsat, image))
-
-    # Add timestamp to each image in the collection
-    landsat_lst = landsat_lst.map(add_timestamp)
-    return landsat_lst

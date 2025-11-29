@@ -44,11 +44,12 @@ def main(args):
         return
     city_asset: CityAsset = project_manager.get_city_asset(city_name = "武汉市")
     if calculator_type == "lst":
-        if len(args) != 3:
-            logger.error("Usage: python -m src lst <start_year> <end_year>")
+        if len(args) < 3 or len(args) > 4:
+            logger.error("Usage: python -m src lst <start_year> <end_year> [<check_days_file_path>]")
             sys.exit(1)
         year_range = (int(args[1]), int(args[2]))
-        process_lst(project_manager, city_asset, year_range)
+        check_days_file_path = args[3] if len(args) > 3 else None
+        process_lst(project_manager, city_asset, year_range, check_days_file_path)
     elif calculator_type == "era5":
         if len(args) != 2:
             logger.error("Usage: python -m src era5 <check_days_file_path>")
