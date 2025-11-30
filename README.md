@@ -2,6 +2,7 @@
 
 [English](#english) | [中文](#中文)
 
+! This Doc is archived by AI
 ---
 
 <a name="english"></a>
@@ -316,18 +317,6 @@ QUALITY_FILE_PATH         # 包含图像质量指标的 CSV 文件
 ```
 
 ---
-
-### 常见问题
-
-| 问题 | 解决方案 |
-|------|----------|
-| GEE 认证失败 | 重新运行 `gee_auth_script.ipynb` |
-| Drive API 配额超限 | 等待 24 小时或申请配额提升 |
-| 任务卡在 RUNNING 状态 | 在 GEE Code Editor 中检查任务管理器 |
-| 下载不完整 | 追踪器将在下次运行时自动重试 |
-
----
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
